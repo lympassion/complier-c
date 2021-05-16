@@ -109,9 +109,7 @@ int main()
                 lexer();
                 pid_curr[id_ind].token = i++;
             }
-            for(int i = 0; i <= id_ind; i++){
-                printf("hash:%d ", pid[i].hash);
-            }
+
             printf("\n");
             
             if((fread(src, 1, size, pFile)) <= 0){
