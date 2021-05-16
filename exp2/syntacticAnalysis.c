@@ -122,6 +122,7 @@ int main()
             }
             parser();
             print(TParser, 0);
+            printf("\nend\n");
             fclose(pFile);
             printf("总行数:%d\t总的字符数:%d\t标识符与关键字总个数:%d\n", line, characters, words);
         }
@@ -129,11 +130,10 @@ int main()
 
     // attention here you cannot free(src) directly,
     // cause src++ till src point to the source code end.
-    printf("hash:%d\n", pid[2].hash);
     free(init_src); 
     free(pid);
-    printf("end\n");
-    printf("src:%d  pid%d, \n", init_src, pid[2].hash);
+    
+
     return 0;
 }
 
