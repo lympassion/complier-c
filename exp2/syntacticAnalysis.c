@@ -55,21 +55,22 @@ int id_ind;
 int flag;  // just use to judge bool
 char str[100];  // to store string
 int val;  // if token==Num, this is its value
+int cntState;  // count construct statement stree
 
 
 void lexer();
-void compiler();
+void parser();
 void match(int tk);
-void struct_body();
-void global_declare();
-void function_declare();
+int struct_body(treeNode *TN);
+void global_declare(treeNode *TN);
+void function_declare(treeNode *TN);
 void function_parameter();
-void function_body();
+void function_body(treeNode *TN);
 int expr(treeNode* TN);
-void statement();
+void statement(treeNode *TN);
 void undef();
 
-treeNode *TState;  // root
+treeNode *TParser;  // root
 
 int main()
 {
@@ -119,8 +120,8 @@ int main()
                 printf("read failed!\n");
                 exit(-1);
             }
-            compiler();
-            print(TState, 0);
+            parser();
+            print(TParser, 0);
             fclose(pFile);
             printf("总行数:%d\t总的字符数:%d\t标识符与关键字总个数:%d\n", line, characters, words);
         }
@@ -136,10 +137,12 @@ int main()
     return 0;
 }
 
-void compiler(){
+void parser(){
     lexer();  // call the lexer and get token
     while(token != NULL){
-        global_declare();
+        TParser = malloc(sizeof(treeNode));
+        construct(TParser, "begin");
+        global_declare(TParser);
     }
 }
 
@@ -156,7 +159,7 @@ void match(int tk){
 
 void undef(){
     if(undefined){
-        printf("第%d行，存在词法错误,有关变量未定义\n", line);
+        printf("第%d行，存在词法错误,有关变量未定义\n", line);  
     }
 }
 
@@ -487,7 +490,32 @@ void lexer(){
 
 
 /*************** syntactic analysis ***************/
-void global_declare() {
+
+treeNode *var_type(treeNode *TN, int ind, char *type){
+    treeNode *TVarDeclare = malloc(sizeof(treeNode));
+    construct(TVarDeclare, "<variable declare>");
+    TN->child[ind] = TVarDeclare;
+    return TVarDeclare;
+}
+
+void id(treeNode *TN, int indIdDecalre){
+    treeNode *TIdDecalre = malloc(sizeof(treeNode));
+    construct(TIdDecalre, "<id>");
+    TN->child[indIdDecalre] = TIdDecalre;
+
+    treeNode *TId = malloc(sizeof(treeNode));
+    construct(TId, pid_curr[id_ind].id);
+    TIdDecalre->child[0] = TId;
+}
+
+treeNode *punction(treeNode *TN, int ind, char *punc){
+    treeNode *TVarDeclare = malloc(sizeof(treeNode));
+    construct(TVarDeclare, punc);
+    TN->child[ind] = TVarDeclare;
+    return TVarDeclare;
+}
+
+void global_declare(treeNode *TN) {
     flag = 0;
 
     // parse struct
@@ -499,34 +527,66 @@ void global_declare() {
     //     next();
     //     current_id[Token] = i++;
     // }
+    int cntTN = 0;
     if(token == Struct){
+        treeNode *TStructDeclare = malloc(sizeof(treeNode));
+        construct(TStructDeclare, "<declare struct>");
+        treeNode *T = malloc(sizeof(treeNode));
+        // T->child[cntTN] = TStructDeclare;
+        TN->child[cntTN] = TStructDeclare;
+        cntTN++;
         match(Struct);
+        
         if(token == Id){
+            id(TStructDeclare, 0);
             match(Id);
-        }
 
-        if(token != '{'){
-            flag = 1;
+            if(token != '{'){
+                flag = 1;
+            }
+            else{
+                treeNode *TOpenBrace = punction(TStructDeclare, 1, "{");
+                TStructDeclare->child[1] = TOpenBrace;
+                match('{');
+
+                treeNode *TStructBody = malloc(sizeof(treeNode));
+                construct(TStructBody, "<struct body>");
+                TStructDeclare->child[2] = TStructBody;
+                int cnt = struct_body(TStructBody);
+
+                // treeNode *TCloseBrace = malloc(sizeof(treeNode));
+                // construct(TCloseBrace, "{");
+                // TStructDeclare->child[3] = TCloseBrace;
+                punction(TStructDeclare, cnt, "}");
+                cnt++;
+                match('}');
+
+                punction(TStructDeclare, cnt, ";");
+                match(';');
+            }
         }
-        else{
-            match('{');
-            struct_body();
-            match('}');
-            match(';');
-        }
+        
         if(flag){
             printf("Structure declaration error\n");
         }
     }
+
+    printf("\nstruct declaration\n");
+    print(TParser, 0);
+
     // There are only three possible types of variables
     // they are INT, CHAR, PTR
     // int [*]id [; | (...) {...}]
     // parse type information
     if (token == Int) {
+        punction(TN, cntTN, pid_curr[id_ind].id);
+        cntTN++;
         match(Int);
         type = INT;
     }
     else if (token == Char) {
+        punction(TN, cntTN, pid_curr[id_ind].id);
+        cntTN++;
         match(Char);
         type = CHAR;
     }
@@ -548,12 +608,21 @@ void global_declare() {
             printf("%d: duplicate global declaration\n", line); // TODO
             exit(-1);
         }
+        id(TN, cntTN);
+        cntTN++;
         match(Id);
         pid_curr[id_ind].type = type;
 
         if (token == '(') {
             pid_curr[id_ind].class = Fun;
-            function_declare();
+
+            treeNode *TOpenParen = punction(TN, cntTN, "(");
+            cntTN++;
+            treeNode *TFunDeclare = malloc(sizeof(treeNode));
+            construct(TFunDeclare, "<declare function>");
+            TN->child[cntTN] = TFunDeclare;
+            cntTN++;
+            function_declare(TFunDeclare);
         } else {
             // variable declaration
             pid_curr[id_ind].class = Gvar; // global variable
@@ -563,17 +632,30 @@ void global_declare() {
             match(',');
         }
     }
+    printf("\nglobal declaration\n");
+    print(TParser, 0);
     lexer();
 }
 
-void struct_body() {
+int struct_body(treeNode *TN) {
     // struct [id]{int a, int b}
+    int cntTN = 0;
+    treeNode *varID;
     while(token != '}'){
         if (token == Int || token == Char) {
+            varID = var_type(TN, cntTN, pid_curr[id_ind].id);
+            cntTN++;
             lexer();
+
             if(token == Id){
+                id(TN, cntTN);
+                cntTN++;
                 lexer();
                 if(token == ',' || token == Brak){
+                    if(token == ','){
+                        varID = punction(TN, cntTN, ",");
+                        cntTN++;
+                    }
                     lexer();
                 }
             }
@@ -585,6 +667,8 @@ void struct_body() {
         else if(token == ';'){
             // because the loop condition is '}', so if
             // ';' exists in struct, use lexer() to reach next token(not ' ')
+            varID = punction(TN, cntTN, ";");
+            cntTN++;
             lexer();
         }
         else{
@@ -592,9 +676,10 @@ void struct_body() {
             return;
         }
     }
+    return cntTN;
 }
 
-void function_declare() {
+void function_declare(treeNode *TN) {
     // type func_name (...) {...}
     //               | this part
 
@@ -602,7 +687,12 @@ void function_declare() {
     function_parameter();
     match(')');
     match('{');
-    function_body();
+    punction(TN, 0, "{");
+
+    treeNode *TFunBody = malloc(sizeof(treeNode));
+    construct(TFunBody, "<function body>");
+    TN->child[1] = TFunBody;
+    function_body(TFunBody);
     //match('}');
 }
 
@@ -639,7 +729,7 @@ void function_parameter() {
     }
 }
 
-void function_body() {
+void function_body(treeNode *TN) {
     // type func_name (...) {...}
     //                   -->|   |<--
     // 1. local declarations
@@ -683,16 +773,23 @@ void function_body() {
 
     // statements
     while (token != '}') {
-        statement();
+        // wtf, here I make a fatal mistake, and the most terrible thing
+        // is the terminal suggests that not this malloc wrong but next
+        // so it's time-consuming
+        // treeNode *TState = malloc(sizeof(TState));  
+        treeNode *TState = malloc(sizeof(treeNode));
+        construct(TState, "<statement>");
+        TN->child[0] = TState;
+        statement(TState);
     }
 }
 
 int factor(treeNode *TN) {
     int value = 0;
     if (token == '(') {
-        treeNode *TLeftPare = malloc(sizeof(treeNode));
-        construct(TLeftPare, "(");
-        TN->child[0] = TLeftPare;
+        treeNode *TOpenParen = malloc(sizeof(treeNode));
+        construct(TOpenParen, "(");
+        TN->child[0] = TOpenParen;
         match('(');
 
         treeNode *TExpr = malloc(sizeof(treeNode));
@@ -759,7 +856,7 @@ int term_tail(int lvalue, treeNode *TN) {
     }
 }
 
-int term(treeNode *TN) {
+int term(treeNode *TN) {  
     treeNode *TFac = malloc(sizeof(treeNode));
     construct(TFac, "<factor>");
     TN->child[0] = TFac;
@@ -768,15 +865,16 @@ int term(treeNode *TN) {
     treeNode *TTermTail = malloc(sizeof(treeNode));
     construct(TTermTail, "<term_tail>");
     TN->child[1] = TTermTail;
+
     return term_tail(lvalue, TTermTail);
 }
 
 int expr_tail(int lvalue, treeNode *TN) {
-    if (token == '+') {
+    if (token == Add) {
         treeNode *TAdd = malloc(sizeof(treeNode));
         construct(TAdd, "+");
         TN->child[0] = TAdd;
-        match('+');
+        match(token);
 
         treeNode *TTerm = malloc(sizeof(treeNode));
         construct(TTerm, "<term>");
@@ -788,11 +886,11 @@ int expr_tail(int lvalue, treeNode *TN) {
         TN->child[2] = TExprTail;
         return expr_tail(value, TExprTail);
     } 
-    else if (token == '-') {
+    else if (token == Sub) {
         treeNode *TSub = malloc(sizeof(treeNode));
         construct(TSub, "-");
         TN->child[0] = TSub;
-        match('-');
+        match(token);
 
         treeNode *TTerm = malloc(sizeof(treeNode));
         construct(TTerm, "<term>");
@@ -822,12 +920,12 @@ int expr(treeNode* TN) {
         
         if (pid_curr[id_ind].class == Fun) {  // function call
             treeNode *TFun = malloc(sizeof(treeNode));
-            construct(TFun, "function call");
+            construct(TFun, "<function call>");
             TN->child[0] = TFun;
             match(Id);
             if (token == '(') {
                 // function call
-                printf("line: %d, call function %s()\n", line, pid_curr[id_ind].id);
+                printf("line: %d, call function %s()\n", line, pid_curr[id_ind].id);  // TODO
                 match('(');
                 while (token != ')') {
                     lexer();
@@ -875,7 +973,7 @@ int expr(treeNode* TN) {
     }
 }
 
-void statement() {
+void statement(treeNode *TN) {
     undef();
     // there are 8 kinds of statements here:
     // 1. if (...) <statement> [else <statement>]
@@ -894,10 +992,10 @@ void statement() {
             match(token);
         }
         match(')');
-        statement();         // parse statement
+        statement(TN);         // parse statement
         if (token == Else) { // parse else
             match(Else);
-            statement();
+            statement(TN);
         }
     }
     else if (token == While) {
@@ -912,7 +1010,7 @@ void statement() {
         // { <statement> ... }
         match('{');
         while (token != '}') {
-            statement();
+            statement(TN);
         }
         match('}');
     }
@@ -934,22 +1032,23 @@ void statement() {
         // function call or arthmetic like a = 1 + 2;
 
         if(token == Id){
-            memcpy(str, pid_curr[id_ind].id, sizeof(pid_curr[id_ind].id));
+            // memcpy(str, pid_curr[id_ind].id, sizeof(pid_curr[id_ind].id));
             match(token);
             if(token == Assign){
                 lexer();
-                TState = malloc(sizeof(treeNode));
-                construct(TState, "<statement>");
                 treeNode *TExpr = malloc(sizeof(treeNode));
                 construct(TExpr, "<expression>");
-                TState->child[0] = TExpr;
+                TN->child[cntState] = TExpr;
+                cntState++;
+                printf("\nexpression\n");
+                print(TParser, 0);
                 expr(TExpr);
             }
             else if(token >= LOr && token <= Dec){  // TODO
                 lexer();
             }
             else{
-                statement();
+                statement(TN);
             }
         }
         else{
