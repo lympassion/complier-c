@@ -25,9 +25,50 @@
 
 
 
-**参考**
+**reference**
 
 1. [手把手教你做一个 C 语言编译器（3）：词法分析器](https://wizardforcel.gitbooks.io/diy-c-compiler/content/4.html)
-
 2. [xc-tutor.c](https://github.com/lotabout/write-a-C-interpreter/tree/step-2)
 
+
+
+### 2. 语法分析程序的设计与实现
+
+**必备要求**
+
+1. 可以识别出用C语言子集中数据类型和语句集编写的源程序，并以语法分析树的形式输出分析结果。（基本数据类型至少包含整数、布尔类型；至少包含赋值语句、变量申明语句、算数加/减法表达式、布尔表达式、循环语句、分支语句）
+
+2.  检查源程序中存在的语法错误，并报告错误所在的位置。
+
+**可选要求**
+
+1.  能识别函数调用语句
+
+2. 对源程序中出现的错误进行适当的恢复，使得语法分析可以继续进行，检查并报告源程序中存在的所有语法错误及错误位置
+
+
+
+**记录**
+
+1. 调试结果与直接运行结果不同，这个确实是第一次遇到
+
+   * 调试
+   * ![image-20210513213633411](C:\Users\ASUS\AppData\Roaming\Typora\typora-user-images\image-20210513213633411.png)
+   * 直接运行
+   * ![image-20210513213549440](C:\Users\ASUS\AppData\Roaming\Typora\typora-user-images\image-20210513213549440.png)
+
+   * 原因
+
+   * ```c
+     while (!(feof(pFile)))
+     {
+         memset(src, 0, SRCMEM);
+         fgets(src, 499, pFile);
+         printf("src:%s", src);
+         compiler();  
+     }
+     ```
+
+     文件读取不规范造成内存溢出，改为用fread()规范读取
+
+   * 
