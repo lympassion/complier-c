@@ -15,6 +15,7 @@
 #define KEYWORDNUM 12
 
 int token;
+char *src;
 
 char keywords[][10] = {
     "struct", "int", "main", "char", "bool", "double",
@@ -28,7 +29,7 @@ void lexer(char *src);
 
 int main(){
     char inFile[20] = "hello.c"; 
-    char *src = malloc(500);  // every line of source code 
+    src = malloc(500);  // every line of source code 
     FILE *pFile;
     int flag;
 
@@ -44,7 +45,7 @@ int main(){
     }
     else{
         if(src == NULL){
-            printf("Fail to allocate the mem!");
+            printf("Fail to allocate the memory!");
             return -1;
         }
         else{
@@ -54,7 +55,8 @@ int main(){
                 fgets(src, 499, pFile);
                 lexer(src);  // every time analyze one line
             }
-
+            
+            fclose(pFile);
             printf("总行数:%d\t总的字符数:%d\t标识符与关键字总个数:%d\n", lines, characters, words);
         }
     }
