@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 struct s {
     char name[20];
     int id;
