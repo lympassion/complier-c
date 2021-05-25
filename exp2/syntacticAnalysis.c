@@ -81,8 +81,7 @@ int main()
     // So I decide to create a file named hello.c in the root directory, which is in the 
     // same directory with exp1. And sometimes it needs you to open under exp2 directory.
     // so it's very confusing.
-    char inFile[20] = "tHello.c"; 
-    // char inFile[20] = "hello.c"; 
+    char inFile[20] = "hello.c"; 
     FILE *pFile;
     
     pFile = fopen(inFile, "rb");  
