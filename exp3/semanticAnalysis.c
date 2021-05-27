@@ -867,7 +867,7 @@ int factor(treeNode *TN) {
         match(Num);
     }
     else{
-        if(pid_curr[id_ind].type == CHAR){
+        if(pid_curr[id_ind].type != INT){
             printf("第%d行：仅整形变量才可以参与算术运算\n", line);
         }
         else{

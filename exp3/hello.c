@@ -11,13 +11,14 @@ struct strc {
 };
 
 int fun(){
-    int a, b;
+    int a1, a2;
     int min(){
-        return a;
+        return a1 + a2;
     }
     return 1;
 }
 int fun(){
+    int a;
     int testFun;
     return 1;
 }
